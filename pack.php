@@ -1,5 +1,7 @@
 <?php
 
+//sae_xhprof_start();
+
 function LoadJpeg($imgname)
 {
     $im = @imagecreatefromjpeg($imgname); /* Attempt to open */
@@ -26,8 +28,51 @@ function LoadGif($imgname)
         imagestring($im, 1, 5, 5, "Error loading $imgname", $tc);
     }
     return $im;
+}
+
+function loadRawData($rawdata)
+{
+    $im = @imagecreatefromstring($rawdata); /* Attempt to open */
+    if(!$im) { /* See if it failed */
+        $im  = imagecreatetruecolor(150, 30); /* Create a blank image */
+        $bgc = imagecolorallocate($im, 255, 255, 255);
+        $tc  = imagecolorallocate($im, 0, 0, 0);
+        imagefilledrectangle($im, 0, 0, 150, 30, $bgc);
+        /* Output an errmsg */
+        imagestring($im, 1, 5, 5, "Error loading $imgname", $tc);
+    }
+    return $im;
+}
+
+function loadFileRange($url)
+{
+    $ch = curl_init($url);
+
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+    curl_setopt($ch, CURLOPT_HEADER, TRUE);
+
+    curl_setopt($ch, CURLOPT_RANGE,"1-100000");
+
+    $data = curl_exec($ch);
+
+    return $data;
 
 }
+
+function retrieve_remote_file_size($url){
+     $ch = curl_init($url);
+
+     curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+     curl_setopt($ch, CURLOPT_HEADER, TRUE);
+     curl_setopt($ch, CURLOPT_NOBODY, TRUE);
+
+     $data = curl_exec($ch);
+     $size = curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
+
+     curl_close($ch);
+     return $size;
+}
+
 
 //$image_to_output = LoadJpeg("http://ww2.sinaimg.cn/thumbnail/6d39fb37jw1dm8vqmssdxj.jpg");
 
@@ -52,8 +97,28 @@ function endsWith($haystack, $needle)
 }
 
 
+
+//dowload images
 for ($i = 0; $i < $nNum; $i++) {
     $url = $_POST["img"][$i];
+
+    $size = retrieve_remote_file_size($url);
+
+    $flag_too_large[$i] = 0;
+
+    
+    if ($size > 100000) {
+        //to bmiddle pic.
+        $url = str_replace("large", "bmiddle", $url);
+        $size = retrieve_remote_file_size($url);
+        if ($size > 100000) {
+            //still too large.
+            $flag_too_large[$i] = 1;
+            $raw = loadFileRange($url);
+            $images[i] = loadRawData($raw);
+        }
+    }
+
     if (endsWith($url, ".jpg")) {
         $images[$i] = LoadJpeg($url);
     }
@@ -66,7 +131,7 @@ for ($i = 0; $i < $nNum; $i++) {
 $ret_image = imagecreatetruecolor((int)$nWidth * $nNum, (int)$nHeight);
 
 
-
+//resample and merge images
 for ($i = 0; $i < $nNum; $i++ ) {
     $oHeight = imagesy($images[$i]);
     $oWidth = imagesx($images[$i]);
@@ -85,6 +150,11 @@ for ($i = 0; $i < $nNum; $i++ ) {
         $src_x = 0;
         $src_y = ($oHeight - $src_h) / 2;
     }
+
+    if ($flag_too_large[$i] == 1) {
+        $src_x = 0;
+        $src_y = 0;
+    }
     
     $ret = imagecopyresampled($ret_image, $images[$i], $nWidth * $i, 0, $src_x, $src_y, $nWidth, $nHeight, $src_w, $src_h);
 }
@@ -93,6 +163,8 @@ for ($i = 0; $i < $nNum; $i++ ) {
 
 header('Content-Type: image/jpeg');
 imagejpeg($ret_image);
+
+//sae_xhprof_end();
 
 ?>
 
