@@ -1,6 +1,7 @@
 <?php
-
+//error_reporting(E_ALL);
 //sae_xhprof_start();
+//flush();
 
 function LoadJpeg($imgname)
 {
@@ -82,9 +83,9 @@ function retrieve_remote_file_size($url){
 //$images[3] = LoadJpeg("http://ww2.sinaimg.cn/thumbnail/6d39fb37jw1dm8vqmssdxj.jpg");
 //$images[4] = LoadJpeg("http://ww2.sinaimg.cn/thumbnail/6d39fb37jw1dm8vqmssdxj.jpg");
 
-$nHeight = $_POST["height"];
-$nWidth = $_POST["width"];
-$nNum = $_POST["num"];
+$nHeight = $_GET["height"];
+$nWidth = $_GET["width"];
+$nNum = $_GET["num"];
 
 function endsWith($haystack, $needle)
 {
@@ -100,7 +101,7 @@ function endsWith($haystack, $needle)
 
 //dowload images
 for ($i = 0; $i < $nNum; $i++) {
-    $url = $_POST["img"][$i];
+    $url = $_GET["img"][$i];
 
     $size = retrieve_remote_file_size($url);
 
@@ -114,8 +115,8 @@ for ($i = 0; $i < $nNum; $i++) {
         if ($size > 100000) {
             //still too large.
             $flag_too_large[$i] = 1;
-            //$raw = loadFileRange($url);
-            //$images[i] = loadRawData($raw);
+            $raw = loadFileRange($url);
+            $images[i] = loadRawData($raw);
         }
     }
 
@@ -154,7 +155,6 @@ for ($i = 0; $i < $nNum; $i++ ) {
     
     $ret = imagecopyresampled($ret_image, $images[$i], $nWidth * $i, 0, $src_x, $src_y, $nWidth, $nHeight, $src_w, $src_h);
 }
-
 
 
 header('Content-Type: image/jpeg');
